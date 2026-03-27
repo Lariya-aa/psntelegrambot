@@ -1,13 +1,12 @@
 """
 Notion API 封装模块
-通过 filter 属性区分一档(会免)数据库和二档/三档(订阅库)数据库
+使用 Search API 查询，兼容多数据源数据库
 """
 
 import logging
-import concurrent.futures
 from notion_client import Client
 
-from config import NOTION_TOKEN, DATABASE_ID
+from config import NOTION_TOKEN
 
 logger = logging.getLogger(__name__)
 
@@ -15,10 +14,9 @@ logger = logging.getLogger(__name__)
 notion = Client(auth=NOTION_TOKEN)
 
 
-def search_db1_free_tier(keyword: str, limit: int = 10) -> list:
+def search_games(keyword: str, limit: int = 10) -> list:
     """
-    搜索一档(会免)数据库
-    一档数据库没有"档位"属性，通过 NOT 档位 来排除二档数据
+    使用 Search API 搜索游戏
 
     Args:
         keyword: 搜索关键词
@@ -28,141 +26,82 @@ def search_db1_free_tier(keyword: str, limit: int = 10) -> list:
         游戏信息列表
     """
     try:
-        # 使用 NOT 组合排除二档数据：一档没有"档位"属性
-        response = notion.databases.query(
-            database_id=DATABASE_ID,
-            filter={
-                "and": [
-                    {
-                        "property": "游戏名称",
-                        "rich_text": {"contains": keyword}
-                    },
-                    {
-                        "not": {
-                            "property": "档位",
-                            "select": {"is_not_empty": True}
-                        }
-                    }
-                ]
-            },
-            page_size=limit
+        # 扩大搜索范围，因为搜索 API 只返回部分匹配
+        response = notion.search(
+            query=keyword,
+            filter={"property": "object", "value": "page"},
+            page_size=50  # 获取更多结果以便过滤
         )
 
         results = []
         for page in response.get('results', []):
-            props = page['properties']
-            name = props.get('游戏名称', {}).get('title', [{}])[0].get('plain_text', '')
-            en_name = ''.join([t.get('plain_text', '') for t in props.get('英文名称', {}).get('rich_text', [])])
-            versions = [s['name'] for s in props.get('版本', {}).get('multi_select', [])]
-            free_date = ''.join([t.get('plain_text', '') for t in props.get('会免日期', {}).get('rich_text', [])])
-            date = props.get('Date', {}).get('date')
+            props = page.get('properties', {})
 
-            results.append({
-                'name': name,
-                'en_name': en_name,
-                'versions': versions,
-                'free_date': free_date,
-                'date': date.get('start') if date else None,
-                'db_type': 1
-            })
+            # 尝试多种属性名获取游戏名称
+            name = (
+                props.get('Name', {}).get('title', [{}])[0].get('plain_text', '') or
+                props.get('游戏名称', {}).get('title', [{}])[0].get('plain_text', '') or
+                props.get('title', {}).get('title', [{}])[0].get('plain_text', '')
+            )
 
-        return results
+            if not name:
+                continue
 
-    except Exception as e:
-        logger.error(f"一档数据库搜索错误: {e}")
-        return []
+            # 关键词精确匹配（不区分大小写）
+            if keyword.lower() not in name.lower():
+                continue
 
+            # 过滤：必须有游戏相关属性（版本 multi_select 或 档位 select）
+            has_version = bool(props.get('版本', {}).get('multi_select'))
+            has_tier = bool(props.get('档位', {}).get('select'))
 
-def search_db2_subscription(keyword: str, limit: int = 10) -> list:
-    """
-    搜索二档/三档(订阅库)数据库
-    二档数据库有"档位"属性
+            # 既没有版本也没有档位，说明不是游戏页面
+            if not has_version and not has_tier:
+                continue
 
-    Args:
-        keyword: 搜索关键词
-        limit: 返回结果数量限制
+            # 尝试获取英文名称
+            en_name = (
+                ''.join([t.get('plain_text', '') for t in props.get('英文名称', {}).get('rich_text', [])]) or
+                ''.join([t.get('plain_text', '') for t in props.get('English Name', {}).get('rich_text', [])])
+            )
 
-    Returns:
-        游戏信息列表
-    """
-    try:
-        response = notion.databases.query(
-            database_id=DATABASE_ID,
-            filter={
-                "and": [
-                    {
-                        "property": "游戏名称",
-                        "rich_text": {"contains": keyword}
-                    },
-                    {
-                        "property": "档位",
-                        "select": {"is_not_empty": True}
-                    }
-                ]
-            },
-            page_size=limit
-        )
+            # 判断是订阅库还是会免游戏
+            if has_tier:
+                # 订阅库游戏
+                entry_date = props.get('入库日期', {}).get('date')
+                exit_date = props.get('出库日期', {}).get('date')
+                versions = [s['name'] for s in props.get('版本', {}).get('multi_select', [])]
 
-        results = []
-        for page in response.get('results', []):
-            props = page['properties']
-            name = props.get('游戏名称', {}).get('title', [{}])[0].get('plain_text', '')
-            en_name = ''.join([t.get('plain_text', '') for t in props.get('英文名称', {}).get('rich_text', [])])
+                results.append({
+                    'name': name,
+                    'en_name': en_name,
+                    'entry_date': entry_date.get('start') if entry_date else None,
+                    'exit_date': exit_date.get('start') if exit_date else None,
+                    'tier': props.get('档位', {}).get('select', {}).get('name'),
+                    'versions': versions,
+                    'db_type': 2
+                })
+            else:
+                # 会免游戏
+                versions = [s['name'] for s in props.get('版本', {}).get('multi_select', [])]
+                free_date = ''.join([t.get('plain_text', '') for t in props.get('会免日期', {}).get('rich_text', [])])
+                date = props.get('Date', {}).get('date')
 
-            # 入库日期
-            entry_date = props.get('入库日期', {}).get('date')
-            entry_date_str = entry_date.get('start') if entry_date else None
+                results.append({
+                    'name': name,
+                    'en_name': en_name,
+                    'versions': versions,
+                    'free_date': free_date,
+                    'date': date.get('start') if date else None,
+                    'db_type': 1
+                })
 
-            # 出库日期 - 用于判断状态
-            exit_date = props.get('出库日期', {}).get('date')
-            exit_date_str = exit_date.get('start') if exit_date else None
-
-            # 档位
-            tier = props.get('档位', {}).get('select', {})
-            tier_name = tier.get('name') if tier else None
-
-            # 版本
-            versions = [s['name'] for s in props.get('版本', {}).get('multi_select', [])]
-
-            results.append({
-                'name': name,
-                'en_name': en_name,
-                'entry_date': entry_date_str,
-                'exit_date': exit_date_str,
-                'tier': tier_name,
-                'versions': versions,
-                'db_type': 2
-            })
-
-        return results
+        # 按关键词匹配度排序并限制数量
+        return results[:limit]
 
     except Exception as e:
-        logger.error(f"二档数据库搜索错误: {e}")
+        logger.error(f"搜索错误: {e}")
         return []
-
-
-def search_all_databases(keyword: str, limit: int = 10) -> list:
-    """
-    搜索所有数据库（会免 + 订阅库）
-
-    Args:
-        keyword: 搜索关键词
-        limit: 返回结果数量限制
-
-    Returns:
-        游戏信息列表
-    """
-    # 并行搜索两个数据库
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        future_db1 = executor.submit(search_db1_free_tier, keyword, limit)
-        future_db2 = executor.submit(search_db2_subscription, keyword, limit)
-
-        results_db1 = future_db1.result()
-        results_db2 = future_db2.result()
-
-    # 合并结果
-    all_results = results_db1 + results_db2
-    return all_results[:limit]
 
 
 def format_game(game: dict) -> str:
@@ -227,5 +166,5 @@ def search_and_format(keyword: str, limit: int = 10) -> list:
     Returns:
         格式化后的游戏信息列表
     """
-    games = search_all_databases(keyword, limit)
+    games = search_games(keyword, limit)
     return [format_game(game) for game in games]

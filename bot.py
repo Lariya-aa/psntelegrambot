@@ -4,6 +4,7 @@ PlayStation 游戏查询 Telegram Bot
 """
 
 import logging
+import re
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
@@ -80,7 +81,28 @@ async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_chat_allowed(update.effective_chat.type, update.effective_chat.id):
         return
 
+    # 调试日志
+    logger.info(f"收到消息: '{update.message.text}' | chat_type: {update.effective_chat.type}")
+
     keyword = update.message.text.strip()
+
+    # 群组消息：只处理 @mention 机器人 的消息
+    if update.effective_chat.type in ('group', 'supergroup'):
+        # 检查是否 @提到了机器人
+        mentioned = False
+        for entity in update.message.entities or []:
+            if entity.type == 'mention':
+                mentioned = True
+                break
+
+        if not mentioned:
+            # 群聊中没有 @mention，不处理
+            return
+
+    # 去掉 @mention 部分（如 "@botname 游戏" -> "游戏"）
+    keyword = re.sub(r'@\w+\s*', '', keyword).strip()
+
+    logger.info(f"处理后关键词: '{keyword}'")
 
     if not keyword:
         return
