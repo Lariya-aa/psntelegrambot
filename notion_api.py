@@ -7,12 +7,12 @@ import logging
 import concurrent.futures
 from notion_client import Client
 
-from config import NOTION_TOKEN, NOTION_API_VERSION, DATABASE_ID
+from config import NOTION_TOKEN, DATABASE_ID
 
 logger = logging.getLogger(__name__)
 
 # Notion 客户端
-notion = Client(auth=NOTION_TOKEN, notion_api_version=NOTION_API_VERSION)
+notion = Client(auth=NOTION_TOKEN)
 
 
 def search_db1_free_tier(keyword: str, limit: int = 10) -> list:
