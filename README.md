@@ -30,6 +30,8 @@ cp .env.example .env
 TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 NOTION_TOKEN=your_notion_token
 DATABASE_ID=your_notion_database_id
+ALLOW_PRIVATE_CHAT=true
+ALLOWED_GROUP_IDS=
 ```
 
 ### 本地运行
@@ -61,7 +63,7 @@ notion_bot/
 │   ├── README_zh.md           # 中文说明文档
 │   └── DEPLOYMENT_zh.md       # 部署指南
 ├── config.py           # 配置管理
-├── notion_client.py    # Notion API 封装
+├── notion_api.py       # Notion API 封装
 ├── bot.py              # Telegram Bot 主程序
 ├── requirements.txt    # Python 依赖
 ├── Dockerfile          # Docker 镜像
@@ -77,6 +79,13 @@ notion_bot/
 1. 发送 `/start` 给 Bot 开始使用
 2. 直接发送游戏名称搜索，如：`潜水员戴夫`
 3. 或使用 `/search <关键词>` 命令搜索
+
+## 聊天权限
+
+| 环境变量 | 默认值 | 说明 |
+|---------|--------|------|
+| ALLOW_PRIVATE_CHAT | true | 是否允许私聊 (true/false) |
+| ALLOWED_GROUP_IDS | (空) | 允许的群组 ID，逗号分隔 |
 
 ## 输出示例
 

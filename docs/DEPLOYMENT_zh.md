@@ -7,9 +7,9 @@
 #### 1. 构建镜像
 
 ```bash
-git clone https://github.com/你的用户名/notion-psbot.git
-cd notion-psbot
-docker build -t notion-psbot:latest .
+git clone https://github.com/Lariya-aa/psntelegrambot.git
+cd psntelegrambot
+docker build -t psntelegrambot:latest .
 ```
 
 #### 2. 运行容器
@@ -58,16 +58,16 @@ docker-compose logs -f
 - 构建 Docker 镜像
 - 推送到 ghcr.io
 
-镜像地址：`ghcr.io/你的用户名/notion-psbot:latest`
+镜像地址：`ghcr.io/Lariya-aa/psntelegrambot:latest`
 
 ### 2. 拉取镜像
 
 ```bash
 # 登录 GitHub Container Registry
-echo $GITHUB_TOKEN | docker login ghcr.io -u 你的用户名 --password-stdin
+echo $GITHUB_TOKEN | docker login ghcr.io -u Lariya-aa --password-stdin
 
 # 拉取镜像
-docker pull ghcr.io/你的用户名/notion-psbot:latest
+docker pull ghcr.io/Lariya-aa/psntelegrambot:latest
 ```
 
 ### 3. 运行
@@ -77,7 +77,7 @@ docker run -d \
   --name ps-game-bot \
   -e TELEGRAM_BOT_TOKEN=your_token \
   -e NOTION_TOKEN=your_token \
-  ghcr.io/你的用户名/notion-psbot:latest
+  ghcr.io/Lariya-aa/psntelegrambot:latest
 ```
 
 ## 生产环境建议
