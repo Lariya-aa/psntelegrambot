@@ -39,7 +39,7 @@
 | NOTION_TOKEN | Notion Integration Token | 环境变量 |
 | DATABASE_ID | Notion 数据库 ID | 环境变量 |
 
-### notion_client.py
+### notion_api.py
 
 Notion API 封装模块：
 
@@ -67,6 +67,8 @@ Telegram Bot 主程序，处理以下命令：
 | NOTION_TOKEN | 是 | - | Notion Integration Token |
 | DATABASE_ID | 否 | 2d09071e8c8480b491efe553bc776324 | Notion 数据库 ID |
 | NOTION_API_VERSION | 否 | 2025-09-03 | Notion API 版本 |
+| ALLOW_PRIVATE_CHAT | 否 | true | 是否允许私聊 (true/false) |
+| ALLOWED_GROUP_IDS | 否 | (空) | 允许的群组 ID，逗号分隔 |
 
 ## 依赖包
 

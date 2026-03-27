@@ -151,6 +151,46 @@ docker rm ps-game-bot
 docker rmi notion-psbot:latest
 ```
 
+## 聊天权限配置
+
+### 配置说明
+
+| 环境变量 | 默认值 | 说明 |
+|---------|--------|------|
+| ALLOW_PRIVATE_CHAT | true | 是否允许私聊 |
+| ALLOWED_GROUP_IDS | (空) | 允许的群组 ID，逗号分隔 |
+
+### 使用示例
+
+**只允许私聊：**
+```bash
+docker run -d \
+  --name ps-game-bot \
+  -e TELEGRAM_BOT_TOKEN=your_token \
+  -e NOTION_TOKEN=your_token \
+  -e ALLOW_PRIVATE_CHAT=true \
+  ghcr.io/Lariya-aa/psntelegrambot:latest
+```
+
+**只允许特定群组（禁用私聊）：**
+```bash
+docker run -d \
+  --name ps-game-bot \
+  -e TELEGRAM_BOT_TOKEN=your_token \
+  -e NOTION_TOKEN=your_token \
+  -e ALLOW_PRIVATE_CHAT=false \
+  -e ALLOWED_GROUP_IDS=-1001234567890,-1009876543210 \
+  ghcr.io/Lariya-aa/psntelegrambot:latest
+```
+
+### 获取群组 ID
+
+把机器人加入群后，发送任意消息，然后访问：
+```
+https://api.telegram.org/bot<TOKEN>/getUpdates
+```
+找到 `chat.id` 就是群组 ID（通常是负数，如 `-1001234567890`）
+
 ## 常见问题
 
 ### Q: 如何更新 Bot？

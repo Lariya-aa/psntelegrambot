@@ -4,6 +4,17 @@
 
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)。
 
+## [1.0.1] - 2026-03-27
+
+### Fixed
+
+- 修复 `notion_client.py` 与 `notion-client` 包名冲突问题，重命名为 `notion_api.py`
+
+### Added
+
+- 私聊权限控制 (`ALLOW_PRIVATE_CHAT`)
+- 群组白名单功能 (`ALLOWED_GROUP_IDS`)
+
 ## [1.0.0] - 2026-03-27
 
 ### Added
