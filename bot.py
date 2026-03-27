@@ -7,7 +7,7 @@ import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-from config import TELEGRAM_BOT_TOKEN, validate_config
+from config import TELEGRAM_BOT_TOKEN, validate_config, is_chat_allowed
 from notion_client import search_and_format
 
 # 日志配置
@@ -45,6 +45,10 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理 /search 命令"""
+    # 检查聊天是否允许
+    if not is_chat_allowed(update.effective_chat.type, update.effective_chat.id):
+        return
+
     keyword = ' '.join(context.args) if context.args else ''
 
     if not keyword:
@@ -72,6 +76,10 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """处理普通文本消息"""
+    # 检查聊天是否允许
+    if not is_chat_allowed(update.effective_chat.type, update.effective_chat.id):
+        return
+
     keyword = update.message.text.strip()
 
     if not keyword:
