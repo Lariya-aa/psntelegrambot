@@ -8,7 +8,7 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
 from config import TELEGRAM_BOT_TOKEN, validate_config, is_chat_allowed
-from notion_client import search_and_format
+from notion_api import search_and_format
 
 # 日志配置
 logging.basicConfig(
