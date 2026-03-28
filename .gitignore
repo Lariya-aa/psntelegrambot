@@ -21,3 +21,4 @@ __pycache__/
 
 # 本地文档（不上传）
 PROBLEM_SOLUTIONS.md
+PLAN_AGENT_ARCHITECTURE.md
